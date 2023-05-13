@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 function App() {
     const [country, setCountry] = useState('');
     const [universities, setUniversities] = useState([]);
+    const [allItemsLoaded, setAllItemsLoaded] = useState(false);
+    const [displayedItems, setDisplayedItems] = useState(15);
 
     useEffect(() => {
         async function getUniversities() {
@@ -29,6 +31,14 @@ function App() {
         }
     };
 
+    const showMore = () => {
+        if (displayedItems >= universities.length) {
+            setAllItemsLoaded(true);
+            return;
+        }
+        setDisplayedItems(displayedItems + 15);
+    };
+
     return (
         <div className='container'>
             <h1>University Database</h1>
@@ -40,8 +50,11 @@ function App() {
             />
             <button onClick={handleSearch}>Search</button>
             <button>Reset</button>
+            <button onClick={showMore} disabled={allItemsLoaded}>
+                Load more
+            </button>
             <div className=''>
-                {universities.map(university => (
+                {universities.slice(0, displayedItems).map(university => (
                     <li key={uuidv4()}>{university.name}</li>
                 ))}
             </div>
