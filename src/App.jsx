@@ -6,16 +6,49 @@ function App() {
     const [universities, setUniversities] = useState([]);
     const [allItemsLoaded, setAllItemsLoaded] = useState(false);
     const [displayedItems, setDisplayedItems] = useState(15);
+    const [checkedCount, setCheckedCount] = useState(0);
+    const [checkboxes, setCheckboxes] = useState(() => {
+        const savedCheckboxes = localStorage.getItem('checkboxes');
+        return savedCheckboxes ? JSON.parse(savedCheckboxes) : {};
+    });
 
     useEffect(() => {
-        async function getUniversities() {
-            const itemsResponse = await axios.get(
-                `http://universities.hipolabs.com/search?country=${country}`,
-            );
-            setUniversities(itemsResponse.data);
+        const savedSearchState = localStorage.getItem('searchState');
+        if (savedSearchState) {
+            const parsedSearchState = JSON.parse(savedSearchState);
+            setCountry(parsedSearchState.country);
+            setUniversities(parsedSearchState.universities);
+            setAllItemsLoaded(parsedSearchState.allItemsLoaded);
+            setDisplayedItems(parsedSearchState.displayedItems);
         }
-        getUniversities();
-    }, [country]);
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem(
+            'searchState',
+            JSON.stringify({
+                country,
+                universities,
+                allItemsLoaded,
+                displayedItems,
+            }),
+        );
+    }, [country, universities, allItemsLoaded, displayedItems]);
+
+    useEffect(() => {
+        const savedCheckboxes = localStorage.getItem('checkboxes');
+        if (savedCheckboxes) {
+            const parsedCheckboxes = JSON.parse(savedCheckboxes);
+            const newCheckedCount = Object.values(parsedCheckboxes).filter(Boolean).length;
+            setCheckedCount(newCheckedCount);
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('checkboxes', JSON.stringify(checkboxes));
+        const newCheckedCount = Object.values(checkboxes).filter(Boolean).length;
+        setCheckedCount(newCheckedCount);
+    }, [checkboxes]);
 
     const handleSearch = async () => {
         try {
@@ -42,24 +75,49 @@ function App() {
         setUniversities([]);
         setAllItemsLoaded(false);
         setDisplayedItems(15);
+        setCheckboxes({});
+    };
+
+    const handleCheckbox = university => {
+        setCheckboxes(prevCheckboxes => {
+            const updatedCheckboxes = {
+                ...prevCheckboxes,
+                [university.name]: !prevCheckboxes[university.name],
+            };
+            return updatedCheckboxes;
+        });
     };
 
     return (
         <div className='container'>
             <h1>University Database</h1>
-            <input
-                type='text'
-                placeholder='Enter university country'
-                value={country}
-                onChange={e => setCountry(e.target.value)}
-            />
-            <button onClick={handleSearch}>Search</button>
-            <button onClick={onReset}>Reset</button>
-            <button onClick={showMore} disabled={allItemsLoaded}>
-                Load more
-            </button>
+            {checkedCount > 0 ? (
+                <p>Total checked univesities - {checkedCount}</p>
+            ) : (
+                <p>You have no checked universities</p>
+            )}
             <div className=''>
-                <table>
+                <div className='mt-10'>
+                    <input
+                        type='text'
+                        placeholder='Enter university country'
+                        value={country}
+                        onChange={e => setCountry(e.target.value)}
+                        className='textInput'
+                    />
+                    <button className='button' onClick={handleSearch}>
+                        Search
+                    </button>
+                    <button className='button' onClick={onReset}>
+                        Reset
+                    </button>
+                    <button className='button' onClick={showMore} disabled={allItemsLoaded}>
+                        Load more
+                    </button>
+                </div>
+            </div>
+            <div className=''>
+                <table style={{ fontSize: '18px' }}>
                     <thead style={{ textAlign: 'center' }}>
                         <tr>
                             <th>№</th>
@@ -88,7 +146,13 @@ function App() {
                                         <a href={university.web_pages}>{university.web_pages}</a>
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <input type='checkbox' id='checkbox' />
+                                        <input
+                                            type='checkbox'
+                                            id='checkbox'
+                                            onChange={() => handleCheckbox(university)}
+                                            checked={checkboxes[university.name] || false}
+                                            key={university.name}
+                                        />
                                     </td>
                                 </tr>
                             );
